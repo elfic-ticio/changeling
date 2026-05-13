@@ -4,6 +4,7 @@ import process from 'node:process';
 
 import { resolveRange } from '../core/range.js';
 import { readGitLog, getRepoUrl } from '../core/git.js';
+import { exec } from '../utils/exec.js';
 import { parseCommit } from '../core/parser.js';
 import { formatChangelog } from '../formatters/markdown.js';
 import { logger } from '../utils/logger.js';
@@ -29,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 export async function generate(options: GenerateOptions = {}): Promise<void> {
   const { from, to, output = 'CHANGELOG.md', dryRun = false, cwd } = options;
+
+  // Bail early on empty repos — resolveRange would throw on a missing HEAD.
+  const headCheck = await exec('git', ['rev-parse', '--verify', 'HEAD'], {
+    cwd,
+    allowNonZero: true,
+  });
+  if (headCheck.exitCode !== 0) {
+    logger.info('Repository has no commits yet — nothing to write.');
+    return;
+  }
 
   const range = await resolveRange(from, to, cwd);
   logger.debug(`Range: ${range}`);
