@@ -16,8 +16,8 @@ export async function resolveRange(from?: string, to?: string, cwd?: string): Pr
     return `${latestTag}..${resolvedTo}`;
   }
 
-  // No tags: include all commits by passing just the target ref.
-  // git-log interprets a single ref as "all commits reachable from that ref".
+  // No tags: return the bare ref so git-log includes the root commit.
+  // Using firstCommit..HEAD would silently exclude the very first commit.
   await validateRef(resolvedTo, cwd);
   return resolvedTo;
 }
