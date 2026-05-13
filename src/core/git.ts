@@ -105,3 +105,20 @@ function parseGitOutput(raw: string): RawCommit[] {
 
   return commits;
 }
+
+export async function getRepoUrl(cwd?: string): Promise<string> {
+  const result = await exec('git', ['config', '--get', 'remote.origin.url'], {
+    cwd,
+    allowNonZero: true,
+  });
+  if (result.exitCode !== 0 || !result.stdout.trim()) return '';
+  return normalizeGitUrl(result.stdout.trim());
+}
+
+function normalizeGitUrl(url: string): string {
+  // SSH: git@github.com:user/repo.git -> https://github.com/user/repo
+  const sshMatch = /^git@([^:]+):(.+?)(?:\.git)?$/.exec(url);
+  if (sshMatch) return `https://${sshMatch[1]}/${sshMatch[2]}`;
+  // HTTPS: strip trailing .git
+  return url.replace(/\.git$/, '');
+}
