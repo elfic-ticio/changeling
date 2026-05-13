@@ -6,7 +6,5 @@ export default defineConfig({
   outDir: 'dist',
   clean: true,
   dts: true,
-  banner: {
-    js: '#!/usr/bin/env node',
-  },
+  // Shebang is declared in src/index.ts; esbuild preserves it in dist/index.js.
 });
