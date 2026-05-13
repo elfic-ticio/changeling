@@ -1,0 +1,71 @@
+{
+  "name": "@elfic/changeling",
+  "version": "0.1.0",
+  "description": "The changelog generator for modern TypeScript projects.",
+  "type": "module",
+  "bin": {
+    "changeling": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.es.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "lint": "eslint src test --max-warnings 0",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "release": "npm run build && changeset publish",
+    "version": "changeset version"
+  },
+  "keywords": [
+    "changelog",
+    "conventional-commits",
+    "cli",
+    "typescript",
+    "release-notes"
+  ],
+  "author": "Omar Sanchez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elfic-ticio/changeling.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elfic-ticio/changeling/issues"
+  },
+  "homepage": "https://github.com/elfic-ticio/changeling#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^25.7.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6"
+  }
+}
