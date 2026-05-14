@@ -17,6 +17,7 @@ Options:
   --to <ref>       End ref. Default: HEAD.
   --output <path>  Write to this file. Default: CHANGELOG.md.
   --dry-run        Print to stdout instead of writing the file.
+  --no-stack       Disable stack detection (Next.js, Prisma, Vite, deps).
   --debug          Show debug output.
   -h, --help       Show this help message.
   -v, --version    Print the version number.
@@ -42,6 +43,7 @@ async function main(): Promise<void> {
       to: { type: 'string' },
       output: { type: 'string' },
       'dry-run': { type: 'boolean' },
+      'no-stack': { type: 'boolean' },
       debug: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
@@ -79,6 +81,7 @@ async function main(): Promise<void> {
     to: values['to'] as string | undefined,
     output: values['output'] as string | undefined,
     dryRun: values['dry-run'] as boolean | undefined,
+    noStack: values['no-stack'] as boolean | undefined,
   });
 }
 

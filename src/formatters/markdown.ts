@@ -37,6 +37,15 @@ export function formatChangelog(
     sections.push(`\n### ${label}\n${lines.join('\n')}`);
   }
 
+  const activeAnnotations = version.stackAnnotations.filter((a) => a.items.length > 0);
+  if (activeAnnotations.length > 0) {
+    const annLines: string[] = ['\n### Stack Changes'];
+    for (const ann of activeAnnotations) {
+      annLines.push(`\n**${ann.label}**\n${ann.items.map((i) => `- ${i}`).join('\n')}`);
+    }
+    sections.push(annLines.join('\n'));
+  }
+
   return sections.join('\n');
 }
 

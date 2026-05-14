@@ -26,10 +26,30 @@ export interface ParsedCommit {
   author: string;
 }
 
+export interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  [key: string]: unknown;
+}
+
+export interface DetectContext {
+  from: string;
+  to: string;
+  cwd?: string;
+  repoUrl?: string;
+}
+
 export interface StackAnnotation {
   detector: 'nextjs' | 'prisma' | 'vite' | 'deps';
   label: string;
   items: string[];
+}
+
+export interface Detector {
+  name: 'nextjs' | 'prisma' | 'vite' | 'deps';
+  isActive(packageJson: PackageJson): boolean;
+  run(commits: ParsedCommit[], ctx: DetectContext): Promise<StackAnnotation | null>;
 }
 
 export interface ChangelogVersion {
