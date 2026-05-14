@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import process from 'node:process';
 
@@ -34,6 +34,19 @@ function commit(cwd: string, message: string): void {
 
 function addTag(cwd: string, name: string): void {
   git(cwd, 'tag', name);
+}
+
+async function writeAndCommit(
+  cwd: string,
+  filePath: string,
+  content: string,
+  message: string,
+): Promise<void> {
+  const fullPath = join(cwd, filePath);
+  await mkdir(dirname(fullPath), { recursive: true });
+  await writeFile(fullPath, content);
+  git(cwd, 'add', filePath);
+  git(cwd, 'commit', '-m', message);
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────────
@@ -226,5 +239,48 @@ describe('generate — integration', () => {
     const content = await readFile(join(tmpDir, 'CHANGELOG.md'), 'utf8');
     expect(content).toContain('**api**: correct status code');
     expect(content).not.toMatch(/\*\*[^*]+\*\*: scopeless fix/);
+  });
+
+  // 13. Next.js detector annotates app/ changes ─────────────────────────────────
+  it('13. nextjs detector: app/ changes produce Stack Changes section', async () => {
+    await initRepo(tmpDir);
+    const pkg = JSON.stringify({ dependencies: { next: '14.0.0' } }, null, 2);
+    await writeAndCommit(tmpDir, 'package.json', pkg, 'chore: init');
+    await writeAndCommit(tmpDir, 'app/page.tsx', 'export default function Page() {}', 'feat: add homepage');
+    await writeAndCommit(tmpDir, 'middleware.ts', 'export function middleware() {}', 'feat: add middleware');
+
+    await generate({ cwd: tmpDir });
+
+    const content = await readFile(join(tmpDir, 'CHANGELOG.md'), 'utf8');
+    expect(content).toContain('### Stack Changes');
+    expect(content).toContain('**Next.js**');
+    expect(content).toContain('- app/page.tsx');
+    expect(content).toContain('- middleware.ts');
+  });
+
+  // 14. --no-stack disables all annotations ─────────────────────────────────────
+  it('14. --no-stack: Stack Changes section is absent', async () => {
+    await initRepo(tmpDir);
+    const pkg = JSON.stringify({ dependencies: { next: '14.0.0' } }, null, 2);
+    await writeAndCommit(tmpDir, 'package.json', pkg, 'chore: init');
+    await writeAndCommit(tmpDir, 'app/page.tsx', 'export default function Page() {}', 'feat: add homepage');
+
+    await generate({ cwd: tmpDir, noStack: true });
+
+    const content = await readFile(join(tmpDir, 'CHANGELOG.md'), 'utf8');
+    expect(content).not.toContain('### Stack Changes');
+  });
+
+  // 15. No Stack Changes when no stack files are touched ────────────────────────
+  it('15. no stack files touched: Stack Changes section is absent', async () => {
+    await initRepo(tmpDir);
+    const pkg = JSON.stringify({ dependencies: { next: '14.0.0' } }, null, 2);
+    await writeAndCommit(tmpDir, 'package.json', pkg, 'chore: init');
+    await writeAndCommit(tmpDir, 'src/utils.ts', 'export const noop = () => {};', 'feat: add utils');
+
+    await generate({ cwd: tmpDir });
+
+    const content = await readFile(join(tmpDir, 'CHANGELOG.md'), 'utf8');
+    expect(content).not.toContain('### Stack Changes');
   });
 });
