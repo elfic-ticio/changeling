@@ -31,7 +31,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "release": "npm run build && changeset publish --access public",
+    "release": "npm run build && changeset publish",
     "version": "changeset version"
   },
   "keywords": [
