@@ -52,8 +52,7 @@
   },
   "homepage": "https://github.com/elfic-ticio/changeling#readme",
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",
