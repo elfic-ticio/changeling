@@ -7,14 +7,16 @@ import { readGitLog, getRepoUrl } from '../core/git.js';
 import { exec } from '../utils/exec.js';
 import { parseCommit } from '../core/parser.js';
 import { formatChangelog } from '../formatters/markdown.js';
+import { detect } from '../detectors/index.js';
 import { logger } from '../utils/logger.js';
-import type { ChangelogVersion, ParsedCommit } from '../types/index.js';
+import type { ChangelogVersion, ParsedCommit, StackAnnotation, DetectContext } from '../types/index.js';
 
 export interface GenerateOptions {
   from?: string;
   to?: string;
   output?: string;
   dryRun?: boolean;
+  noStack?: boolean;
   cwd?: string;
 }
 
@@ -29,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 `;
 
 export async function generate(options: GenerateOptions = {}): Promise<void> {
-  const { from, to, output = 'CHANGELOG.md', dryRun = false, cwd } = options;
+  const { from, to, output = 'CHANGELOG.md', dryRun = false, noStack = false, cwd } = options;
 
   // Bail early on empty repos — resolveRange would throw on a missing HEAD.
   const headCheck = await exec('git', ['rev-parse', '--verify', 'HEAD'], {
@@ -53,10 +55,24 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   }
 
   const parsed = rawCommits.map(parseCommit);
-  const version = buildVersion(parsed);
   const repoUrl = await getRepoUrl(cwd);
   logger.debug(`Repo URL: ${repoUrl || '(none detected)'}`);
 
+  let stackAnnotations: StackAnnotation[] = [];
+  if (!noStack) {
+    const sepIdx = range.indexOf('..');
+    const ctxFrom = sepIdx >= 0 ? range.slice(0, sepIdx) : '';
+    const ctxTo = sepIdx >= 0 ? range.slice(sepIdx + 2) : range;
+    const ctx: DetectContext = { from: ctxFrom, to: ctxTo, cwd, repoUrl: repoUrl || undefined };
+
+    const detectors = await detect(cwd);
+    logger.debug(`Active detectors: ${detectors.map((d) => d.name).join(', ') || '(none)'}`);
+
+    const results = await Promise.all(detectors.map((d) => d.run(parsed, ctx)));
+    stackAnnotations = results.filter((a): a is StackAnnotation => a !== null);
+  }
+
+  const version = buildVersion(parsed, stackAnnotations);
   const block = formatChangelog(version, repoUrl, 'en');
 
   if (dryRun) {
@@ -69,7 +85,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   logger.info(`Wrote ${output}`);
 }
 
-function buildVersion(commits: ParsedCommit[]): ChangelogVersion {
+function buildVersion(commits: ParsedCommit[], stackAnnotations: StackAnnotation[]): ChangelogVersion {
   const groups: Record<string, ParsedCommit[]> = {};
   for (const commit of commits) {
     if (!groups[commit.type]) groups[commit.type] = [];
@@ -81,7 +97,7 @@ function buildVersion(commits: ParsedCommit[]): ChangelogVersion {
     // Use the most-recent commit's date (git log is newest-first).
     date: commits[0]?.date ?? new Date().toISOString(),
     groups,
-    stackAnnotations: [],
+    stackAnnotations,
   };
 }
 
